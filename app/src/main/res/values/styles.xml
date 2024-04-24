@@ -1,0 +1,29 @@
+<resources>
+    <!-- Основной стиль приложения -->
+    <style name="AppTheme" parent="android:Theme.Material">
+        <!-- Цвета -->
+        <item name="android:colorPrimary">@color/colorPrimary</item>
+        <item name="android:colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="android:colorAccent">@color/colorAccent</item>
+        <!-- Цвет текста -->
+        <item name="android:textColor">#FFFFFF</item>
+        <!-- Цвет фона окна -->
+        <item name="android:windowBackground">@color/backgroundGray</item>
+        <!-- Цвет навигационной панели -->
+        <item name="android:navigationBarColor">@color/backgroundGray</item>
+    </style>
+
+    <!-- Стиль без ActionBar -->
+    <style name="AppTheme.NoActionBar">
+        <!-- Скрываем ActionBar -->
+        <item name="android:windowActionBar">false</item>
+        <!-- Скрываем заголовок -->
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <!-- Наложение AppBar -->
+    <style name="AppTheme.AppBarOverlay" parent="android:ThemeOverlay.Material.Dark.ActionBar" />
+
+    <!-- Наложение Popup -->
+    <style name="AppTheme.PopupOverlay" parent="android:ThemeOverlay.Material.Dark" />
+</resources>
