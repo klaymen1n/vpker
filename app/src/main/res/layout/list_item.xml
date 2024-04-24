@@ -19,6 +19,6 @@
         android:textSize="15sp"
         android:padding="5dp"
         android:textColor="@android:color/white"
-        android:clickable="true"/>
+        android:clickable="false"/>
 
 </LinearLayout>

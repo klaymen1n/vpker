@@ -3,7 +3,6 @@
     <item
         android:id="@+id/action_menu"
         android:icon="@android:drawable/ic_menu_more"
-        android:title="Menu"
-        android:showAsAction="always" />
-    <!-- Добавьте здесь другие пункты меню, если необходимо -->
+        android:showAsAction="ifRoom"
+        android:title="@string/action_about" />
 </menu>
