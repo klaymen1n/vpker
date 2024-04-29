@@ -17,18 +17,26 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.connorhaigh.javavpk.core.Archive;
+import com.connorhaigh.javavpk.core.Directory;
+import com.connorhaigh.javavpk.core.Entry;
+import com.connorhaigh.javavpk.exceptions.ArchiveException;
+import com.connorhaigh.javavpk.exceptions.EntryException;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends Activity {
-    Archive archive;
 
     private static final int REQUEST_PERMISSION = 100;
     private ListView fileListView;
-    private ArrayList<File> fileList;
+    private ArrayList<Object> fileList;
 
     private File currentDirectory;
+    private File currentArchive;
     private int retries = 0;
 
     private StringBuilder path = new StringBuilder();
@@ -60,14 +68,40 @@ public class MainActivity extends Activity {
         });
 
         fileListView.setOnItemClickListener((parent, view, position, id) -> {
-            File selectedFile = fileList.get(position);
-            if(position == 0)
+            Object selectedFile = fileList.get(position);
+            String selectedFileString = "";
+            if (position == 0) {
                 goBack();
-            else if (selectedFile.isDirectory()) {
-                displayFiles(selectedFile);
-                currentDirectory = selectedFile;
-            } else {
-                Toast.makeText(MainActivity.this, "Выбран файл: " + selectedFile.getName(), Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if(selectedFile instanceof File) {
+                File selecedFileT = (File) selectedFile;
+
+                selectedFileString = selectedFile.toString();
+
+                if (selecedFileT.isDirectory()) {
+                    displayFiles(selecedFileT);
+                    currentDirectory = selecedFileT;
+                } else if (selectedFileString.substring(selectedFileString.lastIndexOf('.') + 1).compareTo("vpk") == 0) {
+                    try {
+                        manageVpk(selecedFileT, "");
+                    } catch (ArchiveException | IOException | EntryException e) {
+                        Log.e("ERROR", "Error has occurred " + Arrays.toString(e.getStackTrace()));
+                    }finally {
+                        currentArchive = selecedFileT;
+                    }
+                } else
+                    Toast.makeText(MainActivity.this, "Выбран файл: " + selecedFileT.getName(), Toast.LENGTH_SHORT).show();
+            }
+            if(selectedFile instanceof VirualFile) {
+                VirualFile selecedFileV = (VirualFile) selectedFile;
+                if (selecedFileV.isDirectory()) {
+                    try {
+                        manageVpk(currentArchive, selecedFileV.toString() + "/");
+                    } catch (ArchiveException | IOException | EntryException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         });
     }
@@ -88,7 +122,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if(currentDirectory.isDirectory()) {
+        if (currentDirectory.isDirectory()) {
             if ("/storage/emulated".equals(currentDirectory.getParentFile().toString())) {
                 if (retries == 1) {
                     super.onBackPressed();
@@ -97,8 +131,7 @@ public class MainActivity extends Activity {
                     retries++;
                     Toast.makeText(this, "Do it twice to exit", Toast.LENGTH_SHORT).show();
                 }
-            }
-            else
+            } else
                 goBack();
         }
     }
@@ -118,25 +151,24 @@ public class MainActivity extends Activity {
             fileListView.setAdapter(adapter);
 
             TextView emptyText = findViewById(R.id.emptyText);
-            if(fileList.size() == 1)
+            if (fileList.size() == 1)
                 emptyText.setVisibility(View.VISIBLE);
             else
                 emptyText.setVisibility(View.GONE);
 
 
-            TextView directoryText =  findViewById(R.id.directoryText);
+            TextView directoryText = findViewById(R.id.directoryText);
             String text = directory.toString();
-            if(text.length() > 50) {
+            if (text.length() > 50) {
                 String temp1 = text.substring(text.length() - 50);
                 String temp2 = temp1.substring(temp1.indexOf("/") + 1);
                 directoryText.setText("Current directory is ../" + temp2);
-            }
-            else
+            } else
                 directoryText.setText("Current directory is " + text);
         }
     }
 
-    void showMenu(){
+    void showMenu() {
         PopupMenu popupMenu = new PopupMenu(MainActivity.this, findViewById(R.id.menuIcon));
         popupMenu.getMenuInflater().inflate(R.menu.menu_main, popupMenu.getMenu());
         popupMenu.show();
@@ -152,21 +184,70 @@ public class MainActivity extends Activity {
                     AlertDialog dialog = builder.create();
                     dialog.show();
                     return true;
-                }
-                else
+                } else
                     return false;
             }
         });
-        }
+    }
 
-        void goBack()
-        {
-            try {
-                displayFiles(currentDirectory.getParentFile());
-                currentDirectory = currentDirectory.getParentFile();
-                retries = 0;
-            }catch (Exception e) {
-                Log.e("ERROR", "Error has occurred " + e.getMessage());
-            }
+    void goBack() {
+        try {
+            displayFiles(currentDirectory.getParentFile());
+            currentDirectory = currentDirectory.getParentFile();
+            retries = 0;
+        } catch (Exception e) {
+            Log.e("ERROR", "Error has occurred " + e.getMessage());
         }
     }
+
+    private void manageVpk(File vpkFile, String targetDirectory) throws ArchiveException, IOException, EntryException {
+        Archive vpkArchive = new Archive(vpkFile);
+        fileList.clear();
+        FileAdapter fileAdapter = new FileAdapter(this, fileList);
+        fileListView.setAdapter(fileAdapter);
+
+        vpkArchive.load();
+
+        Set<String> printedDirectories = new HashSet<>();
+
+        for (Directory directory : vpkArchive.getDirectories()) {
+            String directoryPath = directory.getPath();
+            int index = directoryPath.indexOf(targetDirectory);
+            if (printedDirectories.contains(directoryPath)) {
+                continue;
+            }
+            if (!directoryPath.contains("/") && targetDirectory.isEmpty()) {
+                Log.d("DEBUGDEBUG!", ""+ directoryPath);
+                fileList.add(new VirualFile(directoryPath, true));
+                printEntries(directory, targetDirectory, fileAdapter);
+            } else if (index != -1) {
+                String relativePath = directoryPath.substring(index + targetDirectory.length());
+                int index2 = relativePath.indexOf("/");
+                if (index2 != -1) {
+                    String subDirectory = relativePath.substring(0, index2);
+                     Log.d("DEBUGDEBUG!", ""+ subDirectory);
+                    fileList.add(new VirualFile(subDirectory, true));
+                } else {
+                     Log.d("DEBUGDEBUG!", ""+ relativePath);
+                    fileList.add(new VirualFile(relativePath, true));
+                }
+                printEntries(directory, targetDirectory, fileAdapter);
+            } else {
+                continue;
+            }
+            printedDirectories.add(directoryPath);
+            fileAdapter.notifyDataSetChanged();
+            Log.d("DEBUGDEBUG!", "fileList size: "+ fileList.size());
+        }
+    }
+
+    private void printEntries(Directory directory, String path, FileAdapter fileAdapter) {
+        for (Entry entry : directory.getEntries()) {
+            Log.d("DEBUG DEBUG", directory.getPathFor(entry) + (path + "/" + entry.getFullName()));
+            if (directory.getPathFor(entry).equals(path + "/" + entry.getFullName())) {
+                fileList.add(new VirualFile(entry.getFullName(), false));
+            }
+        }
+        fileAdapter.notifyDataSetChanged();
+    }
+}
