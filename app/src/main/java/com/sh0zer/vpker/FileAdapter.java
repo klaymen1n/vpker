@@ -29,8 +29,8 @@ public class FileAdapter extends ArrayAdapter<Object> {
         Collections.sort(fileList, (o1, o2) -> {
             if(o1 instanceof File && o2 instanceof File)
                 return ((File) o1).getName().compareToIgnoreCase(((File) o2 ).getName());
-            else if(o1 instanceof VirualFile && o2 instanceof VirualFile)
-                return ((VirualFile) o1).getName().compareToIgnoreCase(((VirualFile) o2 ).getName());
+            else if(o1 instanceof VirtualFile && o2 instanceof VirtualFile)
+                return ((VirtualFile) o1).getName().compareToIgnoreCase(((VirtualFile) o2 ).getName());
             else
                 return 0;
         });
@@ -75,11 +75,10 @@ public class FileAdapter extends ArrayAdapter<Object> {
             } else {
                 imageView.setImageResource(R.drawable.file);
             }
-        }else if(object instanceof VirualFile){
-            VirualFile virualFile = (VirualFile) object;
-            Log.d("DEBUG", virualFile.getName());
-            textView.setText(virualFile.getName());
-            if(virualFile.isDirectory())
+        }else if(object instanceof VirtualFile){
+            VirtualFile virtualFile = (VirtualFile) object;
+            textView.setText(virtualFile.getName());
+            if(virtualFile.isDirectory())
                 imageView.setImageResource(R.drawable.folder);
             else
                 imageView.setImageResource(R.drawable.file);
